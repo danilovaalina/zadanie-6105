@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 )
@@ -21,5 +22,7 @@ func New() *API {
 }
 
 func (a *API) ping(c echo.Context) error {
-	return c.String(http.StatusOK, "pong")
+	v := os.Getenv("POSTGRES_CONN")
+
+	return c.String(http.StatusOK, "pong "+v)
 }
