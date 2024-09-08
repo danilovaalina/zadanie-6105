@@ -1,0 +1,4 @@
+address: 127.0.0.1:8080
+
+postgres:
+  conn: postgres://postgres:postgres@localhost:5432/tender

@@ -1,0 +1,11 @@
+services:
+  zadanie-6105:
+    image: zadanie-6105
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    networks:
+      - zadanie-6105
+networks:
+  zadanie-6105:

@@ -1,15 +1,11 @@
-FROM gradle:4.7.0-jdk8-alpine AS build
-COPY --chown=gradle:gradle . /home/gradle/src
-WORKDIR /home/gradle/src
-RUN gradle build --no-daemon 
+FROM golang:1.23-alpine AS build
+WORKDIR /src
+COPY . .
+RUN go build -o zadanie-6105 cmd/main.go
 
-FROM openjdk:8-jre-slim
+FROM alpine
+WORKDIR /etc/zadanie-6105
+ENV PATH=/etc/zadanie-6105:${PATH}
+COPY --from=build /src/zadanie-6105 .
 
-EXPOSE 8080
-
-RUN mkdir /app
-
-COPY --from=build /home/gradle/src/build/libs/*.jar /app/spring-boot-application.jar
-
-ENTRYPOINT ["java", "-XX:+UnlockExperimentalVMOptions", "-XX:+UseCGroupMemoryLimitForHeap", "-Djava.security.egd=file:/dev/./urandom","-jar","/app/spring-boot-application.jar"]
-
+ENTRYPOINT ["zadanie-6105"]
