@@ -171,7 +171,7 @@ func (a *API) updateBidStatus(c echo.Context) error {
 
 type rollbackBidRequest struct {
 	BidID     uuid.UUID `param:"bidId"`
-	VersionID int64     `param:"version_id"`
+	VersionID int64     `param:"version"`
 }
 
 func (a *API) rollbackBid(c echo.Context) error {
@@ -217,7 +217,7 @@ type bidsResponse struct {
 	Status      string    `json:"status"`
 	CreatorType string    `json:"authorType"`
 	CreatorID   uuid.UUID `json:"authorId"`
-	VersionID   int64     `json:"verstion"`
+	VersionID   int64     `json:"version"`
 	Created     time.Time `json:"createdAt"`
 }
 

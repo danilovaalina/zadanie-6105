@@ -1018,7 +1018,7 @@ components:
         description: Нужно доставить оборудовоние для олимпиады по робототехники
         status: Created
         serviceType: Delivery
-        verstion: 1
+        version: 1
         createdAt: 2006-01-02T15:04:05Z07:00
     bidStatus:
       type: string
@@ -1145,7 +1145,7 @@ components:
         status: Created
         authorType: User
         authorId: 61a485f0-e29b-41d4-a716-446655440000
-        verstion: 1
+        version: 1
         createdAt: 2006-01-02T15:04:05Z07:00
         
     errorResponse:

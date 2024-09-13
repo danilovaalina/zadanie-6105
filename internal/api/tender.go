@@ -196,7 +196,7 @@ type tenderResponse struct {
 	Description string    `json:"description"`
 	Status      string    `json:"status"`
 	ServiceType string    `json:"serviceType"`
-	Version     int64     `json:"verstion"`
+	Version     int64     `json:"version"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
