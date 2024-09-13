@@ -7,5 +7,19 @@ services:
       - 8080:8080
     networks:
       - zadanie-6105
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tender
+    networks:
+      - zadanie-6105
+    volumes:
+      - postgres:/var/lib/postgresql/data
+volumes:
+  postgres:
 networks:
   zadanie-6105:

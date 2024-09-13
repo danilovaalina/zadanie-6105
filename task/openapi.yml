@@ -64,6 +64,10 @@ paths:
             example:
               - Construction
               - Delivery
+        - name: username
+          in: query
+          schema:
+            $ref: "#/components/schemas/username"
       responses:
         "200":
           description: Список тендеров, отсортированных по алфавиту по названию.
