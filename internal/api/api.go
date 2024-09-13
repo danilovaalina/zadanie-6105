@@ -75,5 +75,5 @@ func New(service Service) *API {
 }
 
 func (a *API) ping(c echo.Context) error {
-	return c.JSON(http.StatusOK, "ok")
+	return c.String(http.StatusOK, "ok")
 }
