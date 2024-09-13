@@ -1,0 +1,21 @@
+linters:
+  enable:
+    - gci
+    - revive
+    - lll
+    - paralleltest
+    - prealloc
+    - promlinter
+    - protogetter
+    - stylecheck
+    - testpackage
+    - testifylint
+    - unconvert
+    - zerologlint
+
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(zadanie-6105)
