@@ -30,18 +30,14 @@ func (s *Service) Tenders(ctx context.Context, username string, opts model.Tende
 	return tenders, nil
 }
 
-func (s *Service) Tender(ctx context.Context, username string, tenderID uuid.UUID) (model.Tender, error) {
-	opts := model.TenderFilter{
-		TenderID: tenderID,
-	}
-
+func (s *Service) Tender(ctx context.Context, username string, opts model.TenderFilter) (model.Tender, error) {
 	tenders, err := s.Tenders(ctx, username, opts)
 	if err != nil {
 		return model.Tender{}, err
 	}
 
 	if len(tenders) == 0 {
-		return model.Tender{}, errors.New("TODO")
+		return model.Tender{}, model.ErrTenderOrVersionNotFound
 	}
 
 	return tenders[0], nil
@@ -54,7 +50,7 @@ func (s *Service) CreateTender(ctx context.Context, username string, tender mode
 	}
 
 	if !slices.Contains(employee.OrganizationIDs, tender.OrganizationID) {
-		return model.Tender{}, errors.New("TODO")
+		return model.Tender{}, errors.New("insufficient rights to perform the action")
 	}
 
 	tender.ID, err = uuid.NewV7()
@@ -79,6 +75,15 @@ func (s *Service) UpdateTender(ctx context.Context, username string, tender mode
 		return model.Tender{}, err
 	}
 
+	opts := model.TenderFilter{
+		TenderID: tender.ID,
+	}
+
+	_, err = s.Tender(ctx, username, opts)
+	if err != nil {
+		return model.Tender{}, err
+	}
+
 	tender.CreatorID = employee.ID
 
 	t, err := s.repository.UpdateTender(ctx, tender)
@@ -91,6 +96,16 @@ func (s *Service) UpdateTender(ctx context.Context, username string, tender mode
 
 func (s *Service) RollbackTender(ctx context.Context, username string, tenderID uuid.UUID, versionID int64) (model.Tender, error) {
 	employee, err := s.repository.Employee(ctx, username)
+	if err != nil {
+		return model.Tender{}, err
+	}
+
+	opts := model.TenderFilter{
+		TenderID:  tenderID,
+		VersionID: versionID,
+	}
+
+	_, err = s.Tender(ctx, username, opts)
 	if err != nil {
 		return model.Tender{}, err
 	}

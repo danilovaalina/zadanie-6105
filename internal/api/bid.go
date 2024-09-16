@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
@@ -22,7 +23,7 @@ func (a *API) tenderBids(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	opts := model.BidFilter{
@@ -33,7 +34,13 @@ func (a *API) tenderBids(c echo.Context) error {
 
 	bids, err := a.service.Bids(c.Request().Context(), req.Username, opts)
 	if err != nil {
-		return err
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		if errors.Is(err, model.ErrTenderOrBidNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.bidsFromModel(bids))
@@ -44,7 +51,7 @@ func (a *API) myBids(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	opts := model.BidFilter{
@@ -55,7 +62,10 @@ func (a *API) myBids(c echo.Context) error {
 
 	bids, err := a.service.Bids(c.Request().Context(), req.Username, opts)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.bidsFromModel(bids))
@@ -71,12 +81,15 @@ func (a *API) bidStatus(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	bid, err := a.service.Bid(c.Request().Context(), req.Username, req.BidID)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.String(http.StatusOK, string(bid.Status))
@@ -97,7 +110,7 @@ func (a *API) createBid(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	bid := model.Bid{
@@ -110,7 +123,10 @@ func (a *API) createBid(c echo.Context) error {
 
 	b, err := a.service.CreateBid(c.Request().Context(), req.Username, bid)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.bidFromModel(b))
@@ -127,7 +143,7 @@ func (a *API) updateBid(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	bid := model.Bid{
@@ -136,12 +152,15 @@ func (a *API) updateBid(c echo.Context) error {
 		Description: req.Description,
 	}
 
-	t, err := a.service.UpdateBid(c.Request().Context(), c.QueryParam("username"), bid)
+	b, err := a.service.UpdateBid(c.Request().Context(), c.QueryParam("username"), bid)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, a.bidFromModel(t))
+	return c.JSON(http.StatusOK, a.bidFromModel(b))
 }
 
 type updateBidStatusRequest struct {
@@ -153,7 +172,7 @@ func (a *API) updateBidStatus(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	bid := model.Bid{
@@ -163,7 +182,10 @@ func (a *API) updateBidStatus(c echo.Context) error {
 
 	b, err := a.service.UpdateBid(c.Request().Context(), c.QueryParam("username"), bid)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.bidFromModel(b))
@@ -179,12 +201,15 @@ func (a *API) rollbackBid(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	b, err := a.service.RollbackBid(c.Request().Context(), c.QueryParam("username"), req.BidID, req.VersionID)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.bidFromModel(b))
@@ -199,13 +224,16 @@ func (a *API) submitBidDecision(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	b, err := a.service.SubmitBidDecision(c.Request().Context(), c.QueryParam("username"), req.BidID,
 		model.BidStatus(c.QueryParam("decision")))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.bidFromModel(b))

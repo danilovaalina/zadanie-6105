@@ -51,7 +51,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/paginationLimit"
         - $ref: "#/components/parameters/paginationOffset"
-        - name: service_type
+        - name: serviceType
           description: |
             Возвращенные тендеры должны соответствовать указанным видам услуг.
 
@@ -419,6 +419,8 @@ paths:
                   $ref: "#/components/schemas/tenderId"
                 organizationId:
                   $ref: "#/components/schemas/organizationId"
+                creatorType:
+                  $ref: "#/components/schemas/bidAuthorType"
                 creatorUsername:
                   $ref: "#/components/schemas/username"
               required:

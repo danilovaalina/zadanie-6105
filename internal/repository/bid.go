@@ -74,6 +74,9 @@ func (r *Repository) Bids(ctx context.Context, opts model.BidFilter) ([]model.Bi
 
 	bidRows, err := pgx.CollectRows[bidRow](rows, pgx.RowToStructByNameLax[bidRow])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.WithStack(model.ErrTenderOrBidNotFound)
+		}
 		return nil, errors.WithStack(err)
 	}
 

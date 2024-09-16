@@ -27,6 +27,9 @@ func (r *Repository) Employee(ctx context.Context, username string) (model.Emplo
 
 	row, err := pgx.CollectExactlyOneRow[employeeRow](rows, pgx.RowToStructByNameLax[employeeRow])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Employee{}, errors.WithStack(model.ErrUserNotFound)
+		}
 		return model.Employee{}, errors.WithStack(err)
 	}
 

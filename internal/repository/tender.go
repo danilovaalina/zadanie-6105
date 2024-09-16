@@ -44,6 +44,10 @@ func (r *Repository) Tenders(ctx context.Context, opts model.TenderFilter) ([]mo
 		b = b.Where(sq.Eq{"status": opts.Status})
 	}
 
+	if opts.VersionID > 0 {
+		b = b.Where(sq.Eq{"version_id": opts.VersionID})
+	}
+
 	if opts.Offset > 0 {
 		b = b.Offset(opts.Offset)
 	}
@@ -168,6 +172,9 @@ func (r *Repository) UpdateTender(ctx context.Context, tender model.Tender) (mod
 
 	row, err := pgx.CollectExactlyOneRow[tenderRow](rows, pgx.RowToStructByNameLax[tenderRow])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Tender{}, errors.WithStack(model.ErrCreatorNotFound)
+		}
 		return model.Tender{}, errors.WithStack(err)
 	}
 
@@ -216,6 +223,9 @@ func (r *Repository) RollbackTender(ctx context.Context, tenderID uuid.UUID, ver
 
 	row, err := pgx.CollectExactlyOneRow[tenderRow](rows, pgx.RowToStructByNameLax[tenderRow])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Tender{}, errors.WithStack(model.ErrCreatorNotFound)
+		}
 		return model.Tender{}, errors.WithStack(err)
 	}
 

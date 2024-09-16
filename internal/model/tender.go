@@ -3,7 +3,13 @@ package model
 import (
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
+)
+
+var (
+	ErrCreatorNotFound         = errors.New("creator of tender not found")
+	ErrTenderOrVersionNotFound = errors.New("tender or version not found")
 )
 
 type TenderStatus string
@@ -26,6 +32,7 @@ type TenderFilter struct {
 	My              bool
 	TenderID        uuid.UUID
 	CreatorID       uuid.UUID
+	VersionID       int64
 	ServiceType     ServiceType
 	Status          []TenderStatus
 	OrganizationIDs []uuid.UUID

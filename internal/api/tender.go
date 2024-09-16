@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
@@ -22,7 +23,7 @@ func (a *API) tenders(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	opts := model.TenderFilter{
@@ -33,7 +34,7 @@ func (a *API) tenders(c echo.Context) error {
 
 	tenders, err := a.service.Tenders(c.Request().Context(), req.Username, opts)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.tendersFromModel(tenders))
@@ -44,7 +45,7 @@ func (a *API) myTenders(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	opts := model.TenderFilter{
@@ -56,7 +57,10 @@ func (a *API) myTenders(c echo.Context) error {
 
 	tenders, err := a.service.Tenders(c.Request().Context(), req.Username, opts)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.tendersFromModel(tenders))
@@ -72,15 +76,18 @@ func (a *API) tenderStatus(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
-	tender, err := a.service.Tender(c.Request().Context(), req.Username, req.TenderID)
+	tender, err := a.service.Tender(c.Request().Context(), req.Username, model.TenderFilter{TenderID: req.TenderID})
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, tender.Status)
+	return c.String(http.StatusOK, string(tender.Status))
 }
 
 type createTenderRequest struct {
@@ -96,7 +103,7 @@ func (a *API) createTender(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	tender := model.Tender{
@@ -108,7 +115,10 @@ func (a *API) createTender(c echo.Context) error {
 
 	t, err := a.service.CreateTender(c.Request().Context(), req.Username, tender)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.tenderFromModel(t))
@@ -126,7 +136,7 @@ func (a *API) updateTender(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	tender := model.Tender{
@@ -138,6 +148,9 @@ func (a *API) updateTender(c echo.Context) error {
 
 	t, err := a.service.UpdateTender(c.Request().Context(), c.QueryParam("username"), tender)
 	if err != nil {
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
@@ -153,7 +166,7 @@ func (a *API) updateTenderStatus(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	tender := model.Tender{
@@ -163,7 +176,16 @@ func (a *API) updateTenderStatus(c echo.Context) error {
 
 	t, err := a.service.UpdateTender(c.Request().Context(), c.QueryParam("username"), tender)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		if errors.Is(err, model.ErrTenderOrVersionNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{"reason": err.Error()})
+		}
+		if errors.Is(err, model.ErrCreatorNotFound) {
+			return c.JSON(http.StatusForbidden, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.tenderFromModel(t))
@@ -179,12 +201,21 @@ func (a *API) rollbackTender(c echo.Context) error {
 
 	err := c.Bind(&req)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, echo.Map{"reason": "invalid request format or params"})
 	}
 
 	t, err := a.service.RollbackTender(c.Request().Context(), c.QueryParam("username"), req.TenderID, req.VersionID)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		if errors.Is(err, model.ErrUserNotFound) {
+			return c.JSON(http.StatusUnauthorized, echo.Map{"reason": err.Error()})
+		}
+		if errors.Is(err, model.ErrTenderOrVersionNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{"reason": err.Error()})
+		}
+		if errors.Is(err, model.ErrCreatorNotFound) {
+			return c.JSON(http.StatusForbidden, echo.Map{"reason": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"reason": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, a.tenderFromModel(t))

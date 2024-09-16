@@ -12,7 +12,7 @@ import (
 
 type Service interface {
 	Tenders(ctx context.Context, username string, opts model.TenderFilter) ([]model.Tender, error)
-	Tender(ctx context.Context, username string, tenderID uuid.UUID) (model.Tender, error)
+	Tender(ctx context.Context, username string, opts model.TenderFilter) (model.Tender, error)
 	CreateTender(ctx context.Context, username string, tender model.Tender) (model.Tender, error)
 	UpdateTender(ctx context.Context, username string, tender model.Tender) (model.Tender, error)
 	RollbackTender(ctx context.Context, username string, tenderID uuid.UUID, versionID int64) (model.Tender, error)

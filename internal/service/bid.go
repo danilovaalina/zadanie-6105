@@ -54,7 +54,7 @@ func (s *Service) CreateBid(ctx context.Context, username string, bid model.Bid)
 	}
 
 	if !slices.Contains(employee.OrganizationIDs, bid.OrganizationID) {
-		return model.Bid{}, errors.New("TODO")
+		return model.Bid{}, model.ErrNoRights
 	}
 
 	bid.ID, err = uuid.NewV7()
